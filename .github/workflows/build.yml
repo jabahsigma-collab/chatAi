@@ -1,0 +1,47 @@
+name: Build 32-bit APK
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Unzip project archive
+        run: |
+          unzip -o AiChat.zip -d .
+          test -d AiChat-src || { echo "AiChat-src folder not found in archive"; exit 1; }
+          ls -la AiChat-src
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle 8.7
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Generate Gradle wrapper
+        working-directory: AiChat-src
+        run: gradle wrapper --gradle-version 8.7
+
+      - name: Build 32-bit debug APK
+        working-directory: AiChat-src
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: AiChat-armeabi-v7a-debug
+          path: AiChat-src/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
